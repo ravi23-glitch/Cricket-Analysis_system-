@@ -1,6 +1,6 @@
 import sqlite3
 
-# Connect to SQLite database (creates file if not exists)
+#  (creates file if not exists)
 conn = sqlite3.connect("cricket.db")
 cursor = conn.cursor()
 
@@ -117,3 +117,4 @@ if __name__ == "__main__":
 
 # Close DB when program ends
 conn.close()
+
