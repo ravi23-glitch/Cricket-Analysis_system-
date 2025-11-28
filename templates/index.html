@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Cricket Player Performance System</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+    <!-- Top Navbar -->
+    <header class="navbar">
+        <div class="logo">
+            🏏 Cricket Performance
+        </div>
+        <div class="nav-right">
+            <span class="tag">SQLite + Python (Backend)</span>
+            <span class="tag primary">Flask + HTML &amp; CSS (Frontend)</span>
+        </div>
+    </header>
+
+    <!-- Main Layout -->
+    <main class="container">
+        <!-- Left: Player Form -->
+        <section class="card form-card">
+            <h2>Player Management</h2>
+            <p class="subtitle">
+                Add, update, delete players and analyze their performance.
+            </p>
+
+            <!-- One form, three actions -->
+            <form class="player-form" method="POST" action="/player">
+                <div class="form-group">
+                    <label for="playerName">Player Name</label>
+                    <input type="text" id="playerName" name="playerName" placeholder="e.g., Virat Kohli">
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="matches">Matches</label>
+                        <input type="number" id="matches" name="matches" placeholder="e.g., 50">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="runs">Runs</label>
+                        <input type="number" id="runs" name="runs" placeholder="e.g., 2300">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="wickets">Wickets</label>
+                        <input type="number" id="wickets" name="wickets" placeholder="e.g., 45">
+                    </div>
+                </div>
+
+                <div class="divider"></div>
+
+                <div class="form-group">
+                    <label for="playerId">Player ID (for Update/Delete)</label>
+                    <input type="number" id="playerId" name="playerId" placeholder="Enter existing Player ID">
+                    <small class="hint">Use this ID when updating or deleting a player.</small>
+                </div>
+
+                <div class="button-row">
+                    <button type="submit" class="btn primary" name="action" value="add">Add Player</button>
+                    <button type="submit" class="btn secondary" name="action" value="update">Update Player</button>
+                    <button type="submit" class="btn danger" name="action" value="delete">Delete Player</button>
+                </div>
+
+                <p class="note">
+                    <strong>Tip:</strong> To update, fill Player ID + only the fields you want to change.
+                    To delete, just enter the Player ID and click <strong>Delete Player</strong>.
+                </p>
+            </form>
+        </section>
+
+        <!-- Right: Players Table + Analysis -->
+        <section class="right-panel">
+
+            <!-- Players Table -->
+            <div class="card table-card">
+                <div class="card-header">
+                    <h2>All Players</h2>
+                    <input type="text" class="search-box" placeholder="(UI only) Search player by name...">
+                </div>
+
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Name</th>
+                                <th>Matches</th>
+                                <th>Runs</th>
+                                <th>Wickets</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% if players %}
+                                {% for player in players %}
+                                    <tr>
+                                        <td>{{ player.id }}</td>
+                                        <td>{{ player.name }}</td>
+                                        <td>{{ player.matches }}</td>
+                                        <td>{{ player.runs }}</td>
+                                        <td>{{ player.wickets }}</td>
+                                    </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td colspan="5">No players added yet. Use the form to add one.</td>
+                                </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Analysis Summary -->
+            <div class="card analysis-card">
+                <h2>Performance Analysis</h2>
+
+                <div class="analysis-grid">
+                    <div class="analysis-item">
+                        <span class="label">🏆 Highest Run Scorer</span>
+                        {% if highest_run_scorer %}
+                            <span class="value">{{ highest_run_scorer.name }}</span>
+                            <span class="sub-value">{{ highest_run_scorer.runs }} runs</span>
+                        {% else %}
+                            <span class="value">N/A</span>
+                            <span class="sub-value">Add players to see data</span>
+                        {% endif %}
+                    </div>
+
+                    <div class="analysis-item">
+                        <span class="label">🥇 Best Bowler</span>
+                        {% if best_bowler_player %}
+                            <span class="value">{{ best_bowler_player.name }}</span>
+                            <span class="sub-value">{{ best_bowler_player.wickets }} wickets</span>
+                        {% else %}
+                            <span class="value">N/A</span>
+                            <span class="sub-value">Add players to see data</span>
+                        {% endif %}
+                    </div>
+
+                    <div class="analysis-item">
+                        <span class="label">📊 Avg Runs / Match</span>
+                        <span class="value">{{ avg_runs_per_match }}</span>
+                        <span class="sub-value">All Players</span>
+                    </div>
+                </div>
+
+                <p class="note">
+                    These values are calculated live from the database using Flask + SQLite.
+                </p>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <p>
+            Built for learning &nbsp;|&nbsp; Backend: Python + SQLite &nbsp;|&nbsp;
+            Frontend: Flask + HTML &amp; CSS
+        </p>
+    </footer>
+</body>
+</html>
+
