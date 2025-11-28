@@ -1,16 +1,28 @@
+import os
 from flask import Flask, render_template, request, redirect, url_for
 import sqlite3
 
 app = Flask(__name__)
-DATABASE = "cricket.db"
+
+# -------------------------------
+# DATABASE PATH (works on Render)
+# -------------------------------
+basedir = os.path.abspath(os.path.dirname(__file__))
+DATABASE = os.path.join(basedir, "cricket.db")
 
 
+# -------------------------------
+# DATABASE CONNECTION
+# -------------------------------
 def get_db_connection():
     conn = sqlite3.connect(DATABASE)
-    conn.row_factory = sqlite3.Row   # so we can use row["column_name"]
+    conn.row_factory = sqlite3.Row
     return conn
 
 
+# -------------------------------
+# CREATE TABLE IF NOT EXISTS
+# -------------------------------
 def init_db():
     conn = get_db_connection()
     cur = conn.cursor()
@@ -27,6 +39,9 @@ def init_db():
     conn.close()
 
 
+# -------------------------------
+# FETCH ALL PLAYERS
+# -------------------------------
 def get_all_players():
     conn = get_db_connection()
     cur = conn.cursor()
@@ -36,6 +51,9 @@ def get_all_players():
     return players
 
 
+# -------------------------------
+# PERFORMANCE ANALYSIS
+# -------------------------------
 def analyze_performance():
     conn = get_db_connection()
     cur = conn.cursor()
@@ -44,19 +62,19 @@ def analyze_performance():
     cur.execute("SELECT name, runs FROM players ORDER BY runs DESC LIMIT 1")
     highest_runs = cur.fetchone()
 
-    # Best bowler (max wickets)
+    # Best bowler
     cur.execute("SELECT name, wickets FROM players ORDER BY wickets DESC LIMIT 1")
     best_bowler = cur.fetchone()
 
-    # Average runs per match for all players
-    cur.execute("SELECT SUM(runs) as total_runs, SUM(matches) as total_matches FROM players")
+    # Avg runs/match
+    cur.execute("SELECT SUM(runs) AS total_runs, SUM(matches) AS total_matches FROM players")
     total = cur.fetchone()
 
     conn.close()
 
     highest_run_scorer = None
     best_bowler_player = None
-    avg_runs_per_match = 0.0
+    avg_runs = 0.0
 
     if highest_runs:
         highest_run_scorer = {
@@ -71,25 +89,31 @@ def analyze_performance():
         }
 
     if total["total_matches"]:
-        avg_runs_per_match = total["total_runs"] / total["total_matches"]
+        avg_runs = round(total["total_runs"] / total["total_matches"], 2)
 
-    return highest_run_scorer, best_bowler_player, round(avg_runs_per_match, 2)
+    return highest_run_scorer, best_bowler_player, avg_runs
 
 
+# -------------------------------
+# HOME PAGE
+# -------------------------------
 @app.route("/", methods=["GET"])
 def index():
     players = get_all_players()
-    highest_run_scorer, best_bowler_player, avg_runs_per_match = analyze_performance()
+    highest, best, avg = analyze_performance()
 
     return render_template(
         "index.html",
         players=players,
-        highest_run_scorer=highest_run_scorer,
-        best_bowler_player=best_bowler_player,
-        avg_runs_per_match=avg_runs_per_match
+        highest_run_scorer=highest,
+        best_bowler_player=best,
+        avg_runs_per_match=avg
     )
 
 
+# -------------------------------
+# FORM ACTIONS (ADD/UPDATE/DELETE)
+# -------------------------------
 @app.route("/player", methods=["POST"])
 def handle_player():
     action = request.form.get("action")
@@ -103,40 +127,43 @@ def handle_player():
     conn = get_db_connection()
     cur = conn.cursor()
 
-    # Convert numeric fields safely
-    def to_int(value, default=0):
+    def safe_int(value):
         try:
             return int(value)
-        except (TypeError, ValueError):
-            return default
+        except:
+            return None
 
+    # Add player
     if action == "add":
         if name and matches and runs and wickets:
             cur.execute(
                 "INSERT INTO players (name, matches, runs, wickets) VALUES (?, ?, ?, ?)",
-                (name, to_int(matches), to_int(runs), to_int(wickets))
+                (name, safe_int(matches), safe_int(runs), safe_int(wickets))
             )
 
+    # Update player
     elif action == "update":
         if player_id:
             cur.execute("""
                 UPDATE players
-                SET name = COALESCE(?, name),
+                SET 
+                    name = COALESCE(?, name),
                     matches = COALESCE(?, matches),
                     runs = COALESCE(?, runs),
                     wickets = COALESCE(?, wickets)
                 WHERE id = ?
             """, (
                 name if name else None,
-                to_int(matches) if matches else None,
-                to_int(runs) if runs else None,
-                to_int(wickets) if wickets else None,
-                to_int(player_id)
+                safe_int(matches),
+                safe_int(runs),
+                safe_int(wickets),
+                safe_int(player_id)
             ))
 
+    # Delete player
     elif action == "delete":
         if player_id:
-            cur.execute("DELETE FROM players WHERE id = ?", (to_int(player_id),))
+            cur.execute("DELETE FROM players WHERE id = ?", (safe_int(player_id),))
 
     conn.commit()
     conn.close()
@@ -144,7 +171,12 @@ def handle_player():
     return redirect(url_for("index"))
 
 
+# -------------------------------
+# RUN LOCALLY (Render ignores this)
+# -------------------------------
 if __name__ == "__main__":
     init_db()
     app.run(debug=True)
+
+
 
